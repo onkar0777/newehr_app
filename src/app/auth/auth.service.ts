@@ -10,7 +10,7 @@ import { User } from  './user';
   providedIn: 'root'
 })
 export class AuthService {
-  AUTH_SERVER_ADDRESS:  string  =  '/api';
+  AUTH_SERVER_ADDRESS:  string  =  'http://localhost:8000/api';
   authSubject  =  new  BehaviorSubject(false);
 
   constructor(private  httpClient:  HttpClient, private  storage:  Storage) { }
