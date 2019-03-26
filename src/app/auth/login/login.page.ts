@@ -19,7 +19,7 @@ export class LoginPage implements OnInit {
     this.authService.login(form.value).subscribe((res)=>{
       this.fcm.getToken().then(token => {
         console.log("Received fcm token - ", token);
-        this.authService.registerToken(token).subscribe(() => {
+        this.authService.registerFCMToken(token).subscribe(() => {
           console.log("Registered the fcm token");
           this.router.navigateByUrl('home');
         });
