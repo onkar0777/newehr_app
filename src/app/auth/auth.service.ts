@@ -10,7 +10,7 @@ import { User } from  './user';
   providedIn: 'root'
 })
 export class AuthService {
-  AUTH_SERVER_ADDRESS:  string  =  'http://localhost:8000/api';
+  AUTH_SERVER_ADDRESS:  string  =  'http://192.168.1.7:8000/api';
   authSubject  =  new  BehaviorSubject(false);
 
   constructor(private  httpClient:  HttpClient, private  storage:  Storage) { }
@@ -20,8 +20,7 @@ export class AuthService {
       tap(async (res:  any ) => {
 
         if (res.user) {
-          await this.storage.set("ACCESS_TOKEN", res.user.access_token);
-          await this.storage.set("EXPIRES_IN", res.user.expires_in);
+          await this.storage.set("ACCESS_TOKEN", res.token);
           this.authSubject.next(true);
         }
       })
@@ -32,10 +31,9 @@ export class AuthService {
     console.log(user);
     return this.httpClient.post(`${this.AUTH_SERVER_ADDRESS}/login`, user).pipe(
       tap(async (res: any) => {
-        console.log(res);
+        console.log("response from login server - ", res);
         if (res.user) {
-          await this.storage.set("ACCESS_TOKEN", res.user.access_token);
-          await this.storage.set("EXPIRES_IN", res.user.expires_in);
+          await this.storage.set("ACCESS_TOKEN", res.token);
           this.authSubject.next(true);
         }
       })
@@ -44,12 +42,19 @@ export class AuthService {
 
   async logout() {
     await this.storage.remove("ACCESS_TOKEN");
-    await this.storage.remove("EXPIRES_IN");
     this.authSubject.next(false);
   }
 
   isLoggedIn() {
     return this.authSubject.asObservable();
+  }
+
+  registerToken(token) {
+    return this.httpClient.post(`${this.AUTH_SERVER_ADDRESS}/devices`, token).pipe(
+      tap(async (res: any) => {
+        console.log("response from registerToken server - ", res);
+      })
+    );
   }
 
 }
