@@ -10,14 +10,14 @@ export class AuthInterceptor implements HttpInterceptor {
  
   intercept(req: HttpRequest<any>, next: HttpHandler) {
 
-    return this.authService.getAuthToken().pipe(
-        switchMap(token => {
-            const headers = req.headers.set('Authorization', 'Bearer ' + token).append('Content-Type', 'application/json');
-            const requestClone = req.clone({
-                headers 
-            });
-            return next.handle(requestClone);
-        })
-    );
+    const currentUser = this.authService.currentUserValue;
+    console.log(currentUser);
+    if(currentUser && currentUser.token && currentUser.token.access) {
+      const headers = req.headers.set('Authorization', 'Bearer ' + currentUser.token.access).append('Content-Type', 'application/json');
+      const requestClone = req.clone({ headers });
+      return next.handle(requestClone);
+    } else {
+      return next.handle(req);
+    }
   }
 }

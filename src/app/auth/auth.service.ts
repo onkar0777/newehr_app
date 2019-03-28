@@ -12,17 +12,23 @@ import { Platform } from '@ionic/angular';
 })
 export class AuthService {
   AUTH_SERVER_ADDRESS:  string  =  'http://192.168.1.7:8000/api';
-  authSubject  =  new  BehaviorSubject(false);
+  private currentUserSubject: BehaviorSubject<User>;
+  public currentUser: Observable<User>;
 
-  constructor(private  httpClient:  HttpClient, private  storage:  Storage, private platform: Platform) { }
+  constructor(private  httpClient:  HttpClient, private  storage:  Storage, private platform: Platform) {
+    storage.get('currentUser').then((user) => {
+      this.currentUserSubject = new BehaviorSubject<User>(user);
+      this.currentUser = this.currentUserSubject.asObservable();
+    })
+   }
 
   register(user: User): Observable<any> {
     return this.httpClient.post<any>(`${this.AUTH_SERVER_ADDRESS}/register`, user).pipe(
       tap(async (res:  any ) => {
 
-        if (res.user) {
-          await this.storage.set("ACCESS_TOKEN", res.token);
-          this.authSubject.next(true);
+        if (user) {
+          await this.storage.set("currentUser", user);
+          this.currentUserSubject.next(user);
         }
       })
     );
@@ -30,29 +36,34 @@ export class AuthService {
 
   login(user: User): Observable<any> {
     console.log(user);
-    return this.httpClient.post(`${this.AUTH_SERVER_ADDRESS}/token`, user).pipe(
-      tap(async (res: any) => {
-        console.log("response from login server - ", res);
-        await this.storage.set("ACCESS_TOKEN", res.access);
-        await this.storage.set("ACCESS_REFRESH_TOKEN", res.refresh);
-        const storedToken = await this.storage.get("ACCESS_TOKEN");
-        console.log(storedToken);
-        this.authSubject.next(true);
+    return this.httpClient.post(`${this.AUTH_SERVER_ADDRESS}/login`, user).pipe(
+      tap(async (user: any) => {
+        console.log("response from login server - ", user);
+        user = JSON.parse(user);
+        console.log("Updated user - ", user);
+        if (user && user.token) {
+          // store user details and jwt token in local storage to keep user logged in between page refreshes
+          await this.storage.set('currentUser', user);
+          const storedUser= await this.storage.get("currentUser");
+          console.log(storedUser);
+          this.currentUserSubject.next(user);
+      }
+      return user;
       })
     );
   }
 
-  getAuthToken(): Observable<any> {
-    return from(this.storage.get("ACCESS_TOKEN"));
-  }
-
   async logout() {
-    await this.storage.remove("ACCESS_TOKEN");
-    this.authSubject.next(false);
+    await this.storage.remove("currentUser");
+    this.currentUserSubject.next(null);
   }
 
-  isLoggedIn() {
-    return this.authSubject.asObservable();
+  public set currentUserValue(user) {
+    this.currentUserSubject = new BehaviorSubject<User>(user);
+  }
+
+  public get currentUserValue(): User {
+    return this.currentUserSubject.value;
   }
 
   registerFCMToken(token): Observable<any> {
